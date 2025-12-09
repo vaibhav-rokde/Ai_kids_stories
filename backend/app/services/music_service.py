@@ -155,10 +155,10 @@ class MusicService:
             # Combine all audio chunks
             combined_audio = b''.join(audio_chunks)
 
-            # Save as WAV file (Lyria outputs PCM audio at 24kHz, 16-bit, mono)
-            sample_rate = 24000  # Lyria's output sample rate
+            # Save as WAV file (Lyria outputs PCM audio at 48kHz, 16-bit, stereo)
+            sample_rate = 48000  # Lyria's output sample rate
             sample_width = 2     # 16-bit audio = 2 bytes
-            channels = 1         # Mono
+            channels = 2         # Stereo
 
             with wave.open(output_path, 'wb') as wav_file:
                 wav_file.setnchannels(channels)

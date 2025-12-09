@@ -4,7 +4,7 @@ from fastapi.responses import FileResponse
 from fastapi.staticfiles import StaticFiles
 from app.core.config import settings
 from app.core.database import init_db
-from app.routes import stories
+from app.routes import stories, auth
 from app.models.schemas import HealthCheckResponse
 from datetime import datetime
 import logging
@@ -37,6 +37,7 @@ app.add_middleware(
 )
 
 # Include routers
+app.include_router(auth.router, prefix=settings.API_PREFIX)
 app.include_router(stories.router, prefix=settings.API_PREFIX)
 
 

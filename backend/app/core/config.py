@@ -23,6 +23,9 @@ class Settings(BaseSettings):
     # Database
     DATABASE_URL: str = "sqlite:///./app.db"
 
+    # Security
+    SECRET_KEY: str = "your-secret-key-change-in-production"  # Change this in production!
+
     # CORS
     CORS_ORIGINS: Union[List[str], str] = ["http://localhost:5173", "http://localhost:3000"]
 
@@ -43,6 +46,12 @@ class Settings(BaseSettings):
     AZURE_SPEECH_REGION: str = "your_azure_region_here"
     AZURE_VOICE_NAME: str = "en-US-JennyNeural"
     USE_FALLBACK_TTS: bool = False  # Set to True to use gTTS instead of Azure
+
+    # Cartesia TTS API
+    CARTESIA_API_KEY: str = ""
+    CARTESIA_MODEL_ID: str = "sonic-english"
+    CARTESIA_VOICE_ID: str = "694f9389-aac1-45b6-b726-9d9369183238"  # Child-friendly voice
+    USE_CARTESIA_TTS: bool = True  # Use Cartesia instead of Azure
 
     # Story Configuration
     STORY_MIN_LENGTH: int = 400

@@ -1,4 +1,5 @@
-from sqlalchemy import Column, Integer, String, Text, DateTime, Float, Enum
+from sqlalchemy import Column, Integer, String, Text, DateTime, Float, Enum, ForeignKey
+from sqlalchemy.orm import relationship
 from sqlalchemy.sql import func
 from app.core.database import Base
 import enum
@@ -19,6 +20,7 @@ class Story(Base):
     __tablename__ = "stories"
 
     id = Column(Integer, primary_key=True, index=True)
+    user_id = Column(Integer, ForeignKey("users.id"), nullable=True, index=True)  # Nullable for backward compatibility
 
     # Input parameters
     theme = Column(Text, nullable=False)
@@ -47,6 +49,9 @@ class Story(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
     completed_at = Column(DateTime(timezone=True), nullable=True)
+
+    # Relationships
+    user = relationship("User", back_populates="stories")
 
     def __repr__(self):
         return f"<Story(id={self.id}, title='{self.story_title}', status='{self.status}')>"

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Wand2, Sparkles, Loader2, CheckCircle2, AlertCircle } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -8,6 +9,8 @@ import { Progress } from "@/components/ui/progress";
 import { Alert, AlertDescription } from "@/components/ui/alert";
 import { apiService, StoryResponse, StoryStatusResponse } from "@/lib/api";
 import { AudioPlayer } from "./AudioPlayer";
+import { useAuth } from "@/contexts/AuthContext";
+import { toast } from "sonner";
 
 const themePrompts = [
   { emoji: "🦊", label: "A fox who learns to share" },
@@ -29,6 +32,9 @@ const stageMessages: Record<string, string> = {
 };
 
 export const StoryCreator = () => {
+  const navigate = useNavigate();
+  const { isAuthenticated } = useAuth();
+
   const [theme, setTheme] = useState("");
   const [characterName, setCharacterName] = useState("");
   const [ageGroup, setAgeGroup] = useState("5-7");
@@ -41,6 +47,19 @@ export const StoryCreator = () => {
 
   const handleGenerate = async () => {
     if (!theme.trim()) return;
+
+    // Check if user is authenticated
+    if (!isAuthenticated) {
+      toast.error("Please sign up to create your magical story!", {
+        description: "Creating an account is free and takes just a moment.",
+        action: {
+          label: "Sign Up",
+          onClick: () => navigate("/signup"),
+        },
+      });
+      navigate("/signup");
+      return;
+    }
 
     setIsGenerating(true);
     setError(null);
@@ -187,12 +206,17 @@ export const StoryCreator = () => {
                   ) : (
                     <>
                       <Wand2 className="w-5 h-5" />
-                      Generate Story
+                      {isAuthenticated ? "Generate Story" : "Sign Up to Generate Story"}
                     </>
                   )}
                 </Button>
 
                 <p className="text-center text-sm text-muted-foreground font-body">
+                  {!isAuthenticated && (
+                    <span className="block text-primary font-medium mb-1">
+                      Sign up for free to create your personalized stories!
+                    </span>
+                  )}
                   Stories are 3-5 minutes long with natural AI narration, sound effects, and background music.
                 </p>
               </CardContent>

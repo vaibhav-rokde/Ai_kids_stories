@@ -1,6 +1,9 @@
 from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
 from sqlalchemy.orm import Session
+from typing import Optional
 from app.core.database import get_db
+from app.core.dependencies import get_optional_user, get_current_user
+from app.models.user import User
 from app.models.story import Story, StoryStatus
 from app.models.schemas import (
     StoryCreateRequest,
@@ -76,13 +79,16 @@ async def generate_story_background(story_id: int, theme: str, character_name: s
 async def create_story(
     request: StoryCreateRequest,
     background_tasks: BackgroundTasks,
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    current_user: Optional[User] = Depends(get_optional_user)
 ):
     """
     Create a new story (async generation)
 
     The story generation happens in the background.
     Use GET /stories/{id}/status to check progress.
+
+    If authenticated, the story will be associated with the user.
     """
     try:
         # Create story record
@@ -90,7 +96,8 @@ async def create_story(
             theme=request.theme,
             character_name=request.character_name,
             age_group=request.age_group,
-            status=StoryStatus.PENDING
+            status=StoryStatus.PENDING,
+            user_id=current_user.id if current_user else None
         )
         db.add(story)
         db.commit()
@@ -117,6 +124,32 @@ async def create_story(
     except Exception as e:
         logger.error(f"Error creating story: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Failed to create story: {str(e)}")
+
+
+@router.get("/my-stories", response_model=StoryListResponse)
+def list_my_stories(
+    current_user: User = Depends(get_current_user),
+    db: Session = Depends(get_db),
+    skip: int = 0,
+    limit: int = 20
+):
+    """List current user's stories with pagination"""
+    total = db.query(Story).filter(Story.user_id == current_user.id).count()
+    stories = (
+        db.query(Story)
+        .filter(Story.user_id == current_user.id)
+        .order_by(Story.created_at.desc())
+        .offset(skip)
+        .limit(limit)
+        .all()
+    )
+
+    return StoryListResponse(
+        stories=stories,
+        total=total,
+        page=skip // limit + 1,
+        page_size=limit
+    )
 
 
 @router.get("/{story_id}", response_model=StoryResponse)

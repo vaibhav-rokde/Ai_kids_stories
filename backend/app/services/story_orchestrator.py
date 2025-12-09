@@ -64,10 +64,15 @@ class StoryOrchestrator:
         if getattr(settings, 'USE_FALLBACK_TTS', False) and FALLBACK_TTS_AVAILABLE:
             logger.warning("Using fallback TTS service (gTTS)")
             self.tts_service = TTSServiceFallback()
-            self.use_azure_tts = False
-        else:
+            self.use_cartesia_tts = False
+        elif getattr(settings, 'USE_CARTESIA_TTS', False) and settings.CARTESIA_API_KEY:
+            logger.info("Using Cartesia TTS service")
             self.tts_service = TTSService()
-            self.use_azure_tts = True
+            self.use_cartesia_tts = True
+        else:
+            logger.warning("No TTS service configured, using fallback")
+            self.tts_service = TTSServiceFallback() if FALLBACK_TTS_AVAILABLE else TTSService()
+            self.use_cartesia_tts = False
 
         self.music_service = MusicService()
         self.audio_mixer = AudioMixerService()
@@ -127,17 +132,30 @@ class StoryOrchestrator:
             logger.info(f"[Story {state['story_id']}] Generating speech...")
             state["current_step"] = "generating_audio"
 
-            # Create unique filename
+            # Create unique filename (WAV for Cartesia, MP3 for others)
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            narration_filename = f"story_{state['story_id']}_{timestamp}_narration.mp3"
+            extension = "wav" if self.use_cartesia_tts else "mp3"
+            narration_filename = f"story_{state['story_id']}_{timestamp}_narration.{extension}"
             narration_path = os.path.join(settings.STORIES_DIR, narration_filename)
 
-            # Generate speech
-            await self.tts_service.generate_speech(
-                story_text=state["story_text"],
-                output_path=narration_path,
-                use_ssml=True
-            )
+            # Generate speech with appropriate parameters
+            if self.use_cartesia_tts:
+                # Cartesia TTS uses emotion-based generation
+                emotion = await self.tts_service.get_emotion_for_story(state["story_text"])
+                await self.tts_service.generate_speech(
+                    story_text=state["story_text"],
+                    output_path=narration_path,
+                    emotion=emotion,
+                    speed=1.0
+                )
+            else:
+                # Fallback TTS (gTTS or Azure with SSML)
+                await self.tts_service.generate_speech(
+                    story_text=state["story_text"],
+                    output_path=narration_path,
+                    use_ssml=True
+                )
+
 
             state["narration_path"] = narration_path
 
