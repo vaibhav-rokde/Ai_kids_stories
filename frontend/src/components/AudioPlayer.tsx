@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from "react";
-import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX } from "lucide-react";
+import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX, Download } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
 
@@ -119,6 +119,59 @@ export const AudioPlayer = ({ title, audioUrl, duration, coverImage }: AudioPlay
     setIsMuted(!isMuted);
   };
 
+  const handleDownload = async () => {
+    try {
+      const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+
+      // Get the audio filename from the URL
+      const audioFilename = audioUrl.split('/').pop() || 'story.mp3';
+
+      // Use the dedicated download endpoint
+      const downloadUrl = audioUrl.startsWith('http')
+        ? `${audioUrl}/download`
+        : `${API_BASE_URL}${audioUrl}/download`;
+
+      // Create download link
+      const link = document.createElement('a');
+      link.href = downloadUrl;
+
+      // Generate clean filename from title
+      const filename = `${title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.mp3`;
+      link.download = filename;
+      link.target = '_blank'; // Open in new tab if needed
+
+      // Trigger download
+      document.body.appendChild(link);
+      link.click();
+
+      // Cleanup
+      document.body.removeChild(link);
+    } catch (error) {
+      console.error('Download failed:', error);
+      // Fallback: try blob method
+      try {
+        const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+        const fullAudioUrl = audioUrl.startsWith('http')
+          ? audioUrl
+          : `${API_BASE_URL}${audioUrl}`;
+
+        const response = await fetch(fullAudioUrl);
+        const blob = await response.blob();
+        const url = window.URL.createObjectURL(blob);
+        const link = document.createElement('a');
+        link.href = url;
+        const filename = `${title.replace(/[^a-z0-9]/gi, '_').toLowerCase()}.mp3`;
+        link.download = filename;
+        document.body.appendChild(link);
+        link.click();
+        document.body.removeChild(link);
+        window.URL.revokeObjectURL(url);
+      } catch (fallbackError) {
+        console.error('Fallback download also failed:', fallbackError);
+      }
+    }
+  };
+
   const formatTime = (seconds: number) => {
     if (!isFinite(seconds)) return "0:00";
     const mins = Math.floor(seconds / 60);
@@ -204,6 +257,17 @@ export const AudioPlayer = ({ title, audioUrl, duration, coverImage }: AudioPlay
               disabled={isLoading}
             >
               <SkipForward className="w-4 h-4" />
+            </Button>
+
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={handleDownload}
+              className="rounded-full"
+              disabled={isLoading}
+              title="Download audio"
+            >
+              <Download className="w-4 h-4" />
             </Button>
 
             <div className="flex-1" />

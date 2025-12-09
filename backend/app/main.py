@@ -85,7 +85,7 @@ async def health_check():
 
 @app.get("/api/v1/stories/audio/{filename}")
 async def serve_audio(filename: str):
-    """Serve audio files"""
+    """Serve audio files for streaming"""
     file_path = os.path.join(settings.STORIES_DIR, filename)
 
     if not os.path.exists(file_path):
@@ -95,6 +95,28 @@ async def serve_audio(filename: str):
         file_path,
         media_type="audio/mpeg",
         filename=filename
+    )
+
+
+@app.get("/api/v1/stories/audio/{filename}/download")
+async def download_audio(filename: str):
+    """Download audio files with proper headers"""
+    file_path = os.path.join(settings.STORIES_DIR, filename)
+
+    if not os.path.exists(file_path):
+        raise HTTPException(status_code=404, detail="Audio file not found")
+
+    # Clean filename for download
+    clean_filename = filename.replace(" ", "_")
+
+    return FileResponse(
+        file_path,
+        media_type="audio/mpeg",
+        filename=clean_filename,
+        headers={
+            "Content-Disposition": f'attachment; filename="{clean_filename}"',
+            "Cache-Control": "no-cache"
+        }
     )
 
 
