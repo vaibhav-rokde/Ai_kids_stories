@@ -29,6 +29,7 @@ class StoryResponse(BaseModel):
     character_name: Optional[str]
     age_group: str
     story_text: Optional[str]
+    story_text_html: Optional[str]
     story_title: Optional[str]
     audio_url: Optional[str]
     status: StoryStatus

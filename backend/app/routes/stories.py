@@ -53,6 +53,7 @@ async def generate_story_background(story_id: int, theme: str, character_name: s
         else:
             story.status = StoryStatus.COMPLETED
             story.story_text = result["story_text"]
+            story.story_text_html = result.get("story_text_html", result["story_text"])
             story.story_title = result["story_title"]
             story.word_count = result["word_count"]
             story.final_audio_path = result["final_audio_path"]

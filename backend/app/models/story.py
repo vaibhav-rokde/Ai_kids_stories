@@ -29,6 +29,7 @@ class Story(Base):
 
     # Generated content
     story_text = Column(Text, nullable=True)
+    story_text_html = Column(Text, nullable=True)
     story_title = Column(String(200), nullable=True)
 
     # File paths and URLs

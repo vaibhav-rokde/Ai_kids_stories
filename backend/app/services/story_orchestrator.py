@@ -99,6 +99,25 @@ class StoryOrchestrator:
 
         return workflow.compile()
 
+    def format_story_as_html(self, text: str) -> str:
+        """Format story text with HTML markup for better display"""
+        # Split into paragraphs (by double newlines or single newlines)
+        paragraphs = text.split('\n\n')
+
+        # If no double newlines, split by single newlines
+        if len(paragraphs) == 1:
+            paragraphs = text.split('\n')
+
+        # Wrap each paragraph in <p> tags
+        html_paragraphs = []
+        for para in paragraphs:
+            para = para.strip()
+            if para:
+                # Add paragraph tag
+                html_paragraphs.append(f'<p class="mb-4">{para}</p>')
+
+        return '\n'.join(html_paragraphs)
+
     async def generate_story_node(self, state: StoryState) -> StoryState:
         """Node: Generate story text"""
         try:
@@ -111,7 +130,10 @@ class StoryOrchestrator:
                 age_group=state["age_group"]
             )
 
-            state["story_text"] = result["story_text"]
+            # Store both plain text (for TTS) and HTML formatted version
+            plain_text = result["story_text"]
+            state["story_text"] = plain_text
+            state["story_text_html"] = self.format_story_as_html(plain_text)
             state["story_title"] = result["story_title"]
             state["word_count"] = result["word_count"]
 

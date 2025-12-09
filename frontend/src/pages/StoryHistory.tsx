@@ -5,7 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { AudioPlayer } from '@/components/AudioPlayer';
-import { Loader2, BookOpen, Calendar, Clock, ArrowLeft } from 'lucide-react';
+import { Loader2, BookOpen, Calendar, Clock, ArrowLeft, ChevronDown, ChevronUp } from 'lucide-react';
 import { toast } from 'sonner';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
@@ -14,6 +14,7 @@ interface Story {
   id: number;
   story_title: string;
   story_text: string;
+  story_text_html?: string;
   theme: string;
   character_name: string | null;
   age_group: string;
@@ -37,6 +38,7 @@ export default function StoryHistory() {
   const [stories, setStories] = useState<Story[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [total, setTotal] = useState(0);
+  const [expandedStories, setExpandedStories] = useState<Set<number>>(new Set());
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -94,6 +96,18 @@ export default function StoryHistory() {
       default:
         return 'bg-yellow-100 text-yellow-800 border-yellow-300';
     }
+  };
+
+  const toggleExpanded = (storyId: number) => {
+    setExpandedStories((prev) => {
+      const newSet = new Set(prev);
+      if (newSet.has(storyId)) {
+        newSet.delete(storyId);
+      } else {
+        newSet.add(storyId);
+      }
+      return newSet;
+    });
   };
 
   if (isLoading) {
@@ -177,10 +191,39 @@ export default function StoryHistory() {
                 <CardContent className="space-y-4 pt-6">
                   {/* Story Text Preview */}
                   {story.story_text && (
-                    <div className="bg-secondary/30 rounded-xl p-4">
-                      <p className="font-body text-sm line-clamp-3">
-                        {story.story_text}
-                      </p>
+                    <div className="bg-secondary/30 rounded-xl p-4 space-y-2">
+                      {story.story_text_html ? (
+                        <div
+                          className={`font-body text-sm prose prose-sm max-w-none ${
+                            expandedStories.has(story.id) ? '' : 'line-clamp-3'
+                          }`}
+                          dangerouslySetInnerHTML={{ __html: story.story_text_html }}
+                        />
+                      ) : (
+                        <p className={`font-body text-sm whitespace-pre-wrap ${
+                          expandedStories.has(story.id) ? '' : 'line-clamp-3'
+                        }`}>
+                          {story.story_text}
+                        </p>
+                      )}
+                      {story.story_text.length > 200 && (
+                        <button
+                          onClick={() => toggleExpanded(story.id)}
+                          className="text-primary hover:text-primary/80 text-sm font-medium flex items-center gap-1 transition-colors"
+                        >
+                          {expandedStories.has(story.id) ? (
+                            <>
+                              <span>Read less</span>
+                              <ChevronUp className="w-4 h-4" />
+                            </>
+                          ) : (
+                            <>
+                              <span>Read more</span>
+                              <ChevronDown className="w-4 h-4" />
+                            </>
+                          )}
+                        </button>
+                      )}
                     </div>
                   )}
 
