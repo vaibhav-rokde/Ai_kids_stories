@@ -2,7 +2,17 @@ from typing import TypedDict, Annotated
 from langgraph.graph import StateGraph, END
 from app.services.story_generator import StoryGeneratorService
 from app.services.tts_service import TTSService
+try:
+    from app.services.tts_service_fallback import TTSServiceFallback
+    FALLBACK_TTS_AVAILABLE = True
+except ImportError:
+    FALLBACK_TTS_AVAILABLE = False
 from app.services.music_service import MusicService
+try:
+    from app.services.music_service_fallback import MusicServiceFallback
+    FALLBACK_MUSIC_AVAILABLE = True
+except ImportError:
+    FALLBACK_MUSIC_AVAILABLE = False
 from app.services.audio_mixer import AudioMixerService
 from app.core.config import settings
 import logging
@@ -49,7 +59,16 @@ class StoryOrchestrator:
     def __init__(self):
         """Initialize services"""
         self.story_generator = StoryGeneratorService()
-        self.tts_service = TTSService()
+
+        # Choose TTS service based on configuration or fallback
+        if getattr(settings, 'USE_FALLBACK_TTS', False) and FALLBACK_TTS_AVAILABLE:
+            logger.warning("Using fallback TTS service (gTTS)")
+            self.tts_service = TTSServiceFallback()
+            self.use_azure_tts = False
+        else:
+            self.tts_service = TTSService()
+            self.use_azure_tts = True
+
         self.music_service = MusicService()
         self.audio_mixer = AudioMixerService()
         self.workflow = self._build_workflow()
@@ -148,15 +167,30 @@ class StoryOrchestrator:
 
             # Create unique filename
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-            music_filename = f"story_{state['story_id']}_{timestamp}_music.mp3"
+            music_filename = f"story_{state['story_id']}_{timestamp}_music.wav"
             music_path = os.path.join(settings.STORIES_DIR, music_filename)
 
-            # Generate music
-            await self.music_service.generate_music(
-                duration=int(narration_duration) + 5,  # Add 5s buffer
-                mood=mood,
-                output_path=music_path
-            )
+            # Try to generate music, fall back to silent audio if it fails
+            try:
+                await self.music_service.generate_music(
+                    duration=int(narration_duration) + 5,  # Add 5s buffer
+                    mood=mood,
+                    output_path=music_path
+                )
+            except Exception as music_error:
+                logger.warning(f"[Story {state['story_id']}] Music generation failed: {str(music_error)}")
+                logger.info(f"[Story {state['story_id']}] Using silent audio as fallback")
+
+                # Use fallback music service (silent audio)
+                if FALLBACK_MUSIC_AVAILABLE:
+                    fallback_music = MusicServiceFallback()
+                    await fallback_music.generate_music(
+                        duration=int(narration_duration) + 5,
+                        mood=mood,
+                        output_path=music_path
+                    )
+                else:
+                    raise music_error
 
             state["music_path"] = music_path
 

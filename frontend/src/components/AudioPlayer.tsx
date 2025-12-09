@@ -1,42 +1,138 @@
 import { useState, useRef, useEffect } from "react";
 import { Play, Pause, SkipBack, SkipForward, Volume2, VolumeX } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Slider } from "@/components/ui/slider";
 
 interface AudioPlayerProps {
   title: string;
-  duration: string;
+  audioUrl: string;
+  duration?: string;
   coverImage?: string;
 }
 
-export const AudioPlayer = ({ title, duration, coverImage }: AudioPlayerProps) => {
+export const AudioPlayer = ({ title, audioUrl, duration, coverImage }: AudioPlayerProps) => {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
+  const [totalDuration, setTotalDuration] = useState(0);
+  const [volume, setVolume] = useState(1);
   const [isMuted, setIsMuted] = useState(false);
-  const totalDuration = 240; // 4 minutes in seconds
+  const [isLoading, setIsLoading] = useState(true);
+
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
-    let interval: NodeJS.Timeout;
-    if (isPlaying && currentTime < totalDuration) {
-      interval = setInterval(() => {
-        setCurrentTime((prev) => Math.min(prev + 1, totalDuration));
-      }, 1000);
+    // Construct full audio URL
+    const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+    const fullAudioUrl = audioUrl.startsWith('http')
+      ? audioUrl
+      : `${API_BASE_URL}${audioUrl}`;
+
+    console.log('Loading audio from:', fullAudioUrl);
+
+    // Create audio element
+    const audio = new Audio(fullAudioUrl);
+    audioRef.current = audio;
+
+    // Event listeners
+    const handleLoadedMetadata = () => {
+      setTotalDuration(audio.duration);
+      setIsLoading(false);
+    };
+
+    const handleTimeUpdate = () => {
+      setCurrentTime(audio.currentTime);
+    };
+
+    const handleEnded = () => {
+      setIsPlaying(false);
+      setCurrentTime(0);
+    };
+
+    const handleError = (e: Event) => {
+      setIsLoading(false);
+      console.error("Failed to load audio:", fullAudioUrl, e);
+      console.error("Audio error details:", audio.error);
+    };
+
+    audio.addEventListener("loadedmetadata", handleLoadedMetadata);
+    audio.addEventListener("timeupdate", handleTimeUpdate);
+    audio.addEventListener("ended", handleEnded);
+    audio.addEventListener("error", handleError);
+
+    return () => {
+      audio.removeEventListener("loadedmetadata", handleLoadedMetadata);
+      audio.removeEventListener("timeupdate", handleTimeUpdate);
+      audio.removeEventListener("ended", handleEnded);
+      audio.removeEventListener("error", handleError);
+      audio.pause();
+    };
+  }, [audioUrl]);
+
+  useEffect(() => {
+    if (audioRef.current) {
+      if (isPlaying) {
+        audioRef.current.play().catch(console.error);
+      } else {
+        audioRef.current.pause();
+      }
     }
-    return () => clearInterval(interval);
-  }, [isPlaying, currentTime]);
+  }, [isPlaying]);
+
+  useEffect(() => {
+    if (audioRef.current) {
+      audioRef.current.volume = isMuted ? 0 : volume;
+    }
+  }, [volume, isMuted]);
+
+  const togglePlay = () => {
+    setIsPlaying(!isPlaying);
+  };
+
+  const handleSkipBackward = () => {
+    if (audioRef.current) {
+      audioRef.current.currentTime = Math.max(0, currentTime - 15);
+    }
+  };
+
+  const handleSkipForward = () => {
+    if (audioRef.current) {
+      audioRef.current.currentTime = Math.min(totalDuration, currentTime + 15);
+    }
+  };
+
+  const handleSeek = (value: number[]) => {
+    const newTime = value[0];
+    if (audioRef.current) {
+      audioRef.current.currentTime = newTime;
+      setCurrentTime(newTime);
+    }
+  };
+
+  const handleVolumeChange = (value: number[]) => {
+    setVolume(value[0]);
+    if (isMuted && value[0] > 0) {
+      setIsMuted(false);
+    }
+  };
+
+  const toggleMute = () => {
+    setIsMuted(!isMuted);
+  };
 
   const formatTime = (seconds: number) => {
+    if (!isFinite(seconds)) return "0:00";
     const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
+    const secs = Math.floor(seconds % 60);
     return `${mins}:${secs.toString().padStart(2, "0")}`;
   };
 
-  const progressPercent = (currentTime / totalDuration) * 100;
+  const progressPercent = totalDuration > 0 ? (currentTime / totalDuration) * 100 : 0;
 
   return (
     <div className="bg-gradient-to-br from-card to-secondary/30 rounded-3xl p-6 shadow-xl border-2 border-border">
       <div className="flex items-center gap-4">
         {/* Cover Image */}
-        <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary to-lavender flex items-center justify-center shadow-lg">
+        <div className="w-20 h-20 rounded-2xl bg-gradient-to-br from-primary to-lavender flex items-center justify-center shadow-lg flex-shrink-0">
           {coverImage ? (
             <img src={coverImage} alt={title} className="w-full h-full object-cover rounded-2xl" />
           ) : (
@@ -45,20 +141,29 @@ export const AudioPlayer = ({ title, duration, coverImage }: AudioPlayerProps) =
         </div>
 
         {/* Info & Controls */}
-        <div className="flex-1 space-y-3">
+        <div className="flex-1 space-y-3 min-w-0">
           <div>
-            <h4 className="font-display font-semibold text-foreground text-lg">{title}</h4>
-            <p className="text-sm text-muted-foreground font-body">Duration: {duration}</p>
+            <h4 className="font-display font-semibold text-foreground text-lg truncate">{title}</h4>
+            <p className="text-sm text-muted-foreground font-body">
+              {duration || (totalDuration > 0 ? formatTime(totalDuration) : "Loading...")}
+            </p>
           </div>
 
           {/* Progress Bar */}
           <div className="space-y-1">
-            <div className="h-2 bg-muted rounded-full overflow-hidden">
-              <div
-                className="h-full bg-gradient-to-r from-primary to-lavender rounded-full transition-all duration-300"
-                style={{ width: `${progressPercent}%` }}
+            {isLoading ? (
+              <div className="h-2 bg-muted rounded-full overflow-hidden">
+                <div className="h-full bg-primary/30 animate-pulse" />
+              </div>
+            ) : (
+              <Slider
+                value={[currentTime]}
+                max={totalDuration}
+                step={0.1}
+                onValueChange={handleSeek}
+                className="cursor-pointer"
               />
-            </div>
+            )}
             <div className="flex justify-between text-xs text-muted-foreground font-body">
               <span>{formatTime(currentTime)}</span>
               <span>{formatTime(totalDuration)}</span>
@@ -70,8 +175,9 @@ export const AudioPlayer = ({ title, duration, coverImage }: AudioPlayerProps) =
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => setCurrentTime(Math.max(0, currentTime - 15))}
+              onClick={handleSkipBackward}
               className="rounded-full"
+              disabled={isLoading}
             >
               <SkipBack className="w-4 h-4" />
             </Button>
@@ -79,28 +185,58 @@ export const AudioPlayer = ({ title, duration, coverImage }: AudioPlayerProps) =
             <Button
               variant="magic"
               size="icon"
-              onClick={() => setIsPlaying(!isPlaying)}
+              onClick={togglePlay}
               className="w-12 h-12 rounded-full"
+              disabled={isLoading}
             >
-              {isPlaying ? <Pause className="w-5 h-5" /> : <Play className="w-5 h-5 ml-0.5" />}
+              {isPlaying ? (
+                <Pause className="w-5 h-5" />
+              ) : (
+                <Play className="w-5 h-5 ml-0.5" />
+              )}
             </Button>
 
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => setCurrentTime(Math.min(totalDuration, currentTime + 15))}
+              onClick={handleSkipForward}
               className="rounded-full"
+              disabled={isLoading}
             >
               <SkipForward className="w-4 h-4" />
             </Button>
 
             <div className="flex-1" />
 
+            {/* Volume Control */}
+            <div className="hidden sm:flex items-center gap-2 min-w-[120px]">
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={toggleMute}
+                className="rounded-full flex-shrink-0"
+              >
+                {isMuted || volume === 0 ? (
+                  <VolumeX className="w-4 h-4" />
+                ) : (
+                  <Volume2 className="w-4 h-4" />
+                )}
+              </Button>
+              <Slider
+                value={[isMuted ? 0 : volume]}
+                max={1}
+                step={0.01}
+                onValueChange={handleVolumeChange}
+                className="w-20"
+              />
+            </div>
+
+            {/* Mobile volume toggle */}
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => setIsMuted(!isMuted)}
-              className="rounded-full"
+              onClick={toggleMute}
+              className="rounded-full sm:hidden"
             >
               {isMuted ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
             </Button>

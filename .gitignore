@@ -226,6 +226,11 @@ site/
 .ipynb_checkpoints
 *.ipynb
 
+# Start/Stop Scripts
+*.pid
+backend.log
+frontend.log
+
 # Optional: Uncomment if using these
 # package-lock.json
 # bun.lockb

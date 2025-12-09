@@ -1,8 +1,14 @@
-from pydantic_settings import BaseSettings
-from typing import List
+from pydantic_settings import BaseSettings, SettingsConfigDict
+from pydantic import field_validator
+from typing import List, Union
 
 
 class Settings(BaseSettings):
+    model_config = SettingsConfigDict(
+        env_file=".env",
+        case_sensitive=True,
+        extra='ignore'  # Ignore extra fields from .env
+    )
     """Application settings"""
 
     # Environment
@@ -18,20 +24,25 @@ class Settings(BaseSettings):
     DATABASE_URL: str = "sqlite:///./app.db"
 
     # CORS
-    CORS_ORIGINS: List[str] = ["http://localhost:5173", "http://localhost:3000"]
+    CORS_ORIGINS: Union[List[str], str] = ["http://localhost:5173", "http://localhost:3000"]
+
+    @field_validator('CORS_ORIGINS', mode='before')
+    @classmethod
+    def parse_cors_origins(cls, v):
+        """Parse CORS_ORIGINS from comma-separated string or list"""
+        if isinstance(v, str):
+            return [origin.strip() for origin in v.split(',')]
+        return v
 
     # Google Gemini API
     GEMINI_API_KEY: str
     GEMINI_MODEL: str = "gemini-pro"
 
     # Azure Text-to-Speech
-    AZURE_SPEECH_KEY: str
-    AZURE_SPEECH_REGION: str
+    AZURE_SPEECH_KEY: str = "your_azure_speech_key_here"  # Set to use Azure TTS
+    AZURE_SPEECH_REGION: str = "your_azure_region_here"
     AZURE_VOICE_NAME: str = "en-US-JennyNeural"
-
-    # Mubert Music API
-    MUBERT_API_KEY: str
-    MUBERT_LICENSE: str
+    USE_FALLBACK_TTS: bool = False  # Set to True to use gTTS instead of Azure
 
     # Story Configuration
     STORY_MIN_LENGTH: int = 400
@@ -55,10 +66,6 @@ class Settings(BaseSettings):
     # Logging
     LOG_LEVEL: str = "INFO"
     LOG_FILE: str = "./logs/app.log"
-
-    class Config:
-        env_file = ".env"
-        case_sensitive = True
 
 
 settings = Settings()

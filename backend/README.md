@@ -1,12 +1,12 @@
 # StoryMagic Backend API
 
-AI-Powered Immersive Kids Story Generation Backend built with FastAPI, Gemini AI, Azure TTS, and Mubert.
+AI-Powered Immersive Kids Story Generation Backend built with FastAPI, Gemini AI, Azure TTS, and Gemini Lyria RealTime.
 
 ## Features
 
 - **Story Generation**: AI-powered story creation using Google Gemini
 - **Natural Narration**: High-quality Text-to-Speech using Azure Cognitive Services
-- **Background Music**: Dynamic music generation using Mubert API
+- **Background Music**: Real-time music generation using Google Gemini Lyria RealTime
 - **Audio Mixing**: Professional audio mixing with PyDub
 - **Workflow Orchestration**: LangGraph-based pipeline management
 - **SQLite Database**: Story management and metadata storage
@@ -18,7 +18,7 @@ AI-Powered Immersive Kids Story Generation Backend built with FastAPI, Gemini AI
 - **AI Services**:
   - Google Gemini (Story Generation)
   - Azure Cognitive Services (Text-to-Speech)
-  - Mubert (Music Generation)
+  - Google Gemini Lyria RealTime (Music Generation)
 - **Workflow**: LangGraph
 - **Database**: SQLite + SQLAlchemy
 - **Audio**: PyDub
@@ -65,16 +65,12 @@ cp .env.example .env
 Edit `.env` and add your API keys:
 
 ```env
-# Google Gemini API
+# Google Gemini API (used for story generation and music generation via Lyria)
 GEMINI_API_KEY=your_gemini_api_key_here
 
 # Azure Text-to-Speech
 AZURE_SPEECH_KEY=your_azure_speech_key_here
 AZURE_SPEECH_REGION=your_azure_region_here
-
-# Mubert Music API
-MUBERT_API_KEY=your_mubert_api_key_here
-MUBERT_LICENSE=your_mubert_license_here
 ```
 
 ## Getting API Keys
@@ -84,15 +80,12 @@ MUBERT_LICENSE=your_mubert_license_here
 2. Create a new API key
 3. Copy the key to `.env`
 
+**Note**: The same Gemini API key is used for both story generation and background music generation via Lyria RealTime. Lyria RealTime is available in the Gemini API v1alpha.
+
 ### Azure Speech Services
 1. Go to [Azure Portal](https://portal.azure.com)
 2. Create a "Speech Services" resource
 3. Copy the Key and Region to `.env`
-
-### Mubert API
-1. Go to [Mubert API](https://mubert.com/api)
-2. Sign up for API access
-3. Get your API key and license
 
 ## Running the Server
 
@@ -201,7 +194,7 @@ The story generation follows this LangGraph-orchestrated workflow:
    ↓
 2. Generate Speech Narration (Azure TTS)
    ↓
-3. Generate Background Music (Mubert)
+3. Generate Background Music (Gemini Lyria RealTime)
    ↓
 4. Mix Audio (PyDub)
    ↓
@@ -242,10 +235,13 @@ If you get "database is locked" errors, it's because SQLite doesn't handle concu
 
 Based on our research for 100,000 stories:
 
-- **Gemini API**: $650
+- **Gemini API (Story + Lyria Music)**: FREE during experimental phase
+  - Story Generation: Estimated $650 at scale (after free tier)
+  - Lyria RealTime: Currently in experimental/preview phase with no cost
 - **Azure TTS**: $4,320
-- **Mubert Music**: $30,000
-- **Total**: ~$35,970 ($0.36 per story)
+- **Total**: ~$4,970 ($0.05 per story)
+
+**Cost Savings**: By switching from Mubert ($30,000) to Google Gemini Lyria RealTime (free during experimental phase), we've reduced costs by 86% compared to the original estimate.
 
 See `research_phase1.md` for detailed cost analysis and optimization strategies.
 

@@ -9,8 +9,10 @@ alembic==1.13.1
 
 # AI/ML Services
 google-generativeai==0.3.2
+google-genai==0.2.2
 azure-cognitiveservices-speech==1.35.0
 openai==1.10.0
+gTTS==2.5.0
 
 # LangGraph for workflow orchestration
 langgraph==0.0.20
