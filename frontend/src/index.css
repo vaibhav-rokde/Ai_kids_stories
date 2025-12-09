@@ -1,0 +1,309 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Fredoka:wght@400;500;600;700&family=Nunito:wght@400;500;600;700&display=swap');
+
+@layer base {
+  :root {
+    /* Warm, magical color palette for kids */
+    --background: 38 100% 98%;
+    --foreground: 234 40% 20%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 234 40% 20%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 234 40% 20%;
+
+    /* Warm coral - playful, energetic */
+    --primary: 15 90% 60%;
+    --primary-foreground: 0 0% 100%;
+
+    /* Soft lavender - magical, dreamy */
+    --secondary: 270 50% 92%;
+    --secondary-foreground: 270 40% 30%;
+
+    /* Muted creamy tones */
+    --muted: 38 30% 94%;
+    --muted-foreground: 234 20% 45%;
+
+    /* Golden accent - happy, warm */
+    --accent: 45 95% 65%;
+    --accent-foreground: 45 80% 20%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 38 30% 88%;
+    --input: 38 30% 88%;
+    --ring: 15 90% 60%;
+
+    --radius: 1rem;
+
+    /* Custom design tokens */
+    --coral: 15 90% 60%;
+    --coral-light: 15 90% 75%;
+    --lavender: 270 50% 80%;
+    --lavender-light: 270 50% 92%;
+    --sunshine: 45 95% 65%;
+    --mint: 160 50% 75%;
+    --sky: 200 80% 75%;
+    --peach: 25 90% 85%;
+
+    /* Gradients */
+    --gradient-hero: linear-gradient(135deg, hsl(38 100% 98%) 0%, hsl(270 50% 95%) 50%, hsl(200 80% 95%) 100%);
+    --gradient-card: linear-gradient(180deg, hsl(0 0% 100%) 0%, hsl(38 30% 98%) 100%);
+    --gradient-magic: linear-gradient(135deg, hsl(15 90% 60%) 0%, hsl(270 50% 70%) 100%);
+    --gradient-sunset: linear-gradient(135deg, hsl(15 90% 70%) 0%, hsl(45 95% 65%) 100%);
+    --gradient-dream: linear-gradient(135deg, hsl(270 50% 85%) 0%, hsl(200 80% 85%) 100%);
+
+    /* Shadows */
+    --shadow-soft: 0 4px 20px -4px hsl(234 40% 20% / 0.1);
+    --shadow-card: 0 8px 30px -8px hsl(234 40% 20% / 0.12);
+    --shadow-glow: 0 0 40px hsl(15 90% 60% / 0.3);
+    --shadow-magic: 0 8px 32px hsl(270 50% 50% / 0.2);
+
+    /* Sidebar */
+    --sidebar-background: 38 30% 97%;
+    --sidebar-foreground: 234 40% 20%;
+    --sidebar-primary: 15 90% 60%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 270 50% 92%;
+    --sidebar-accent-foreground: 270 40% 30%;
+    --sidebar-border: 38 30% 88%;
+    --sidebar-ring: 15 90% 60%;
+  }
+
+  .dark {
+    --background: 234 40% 12%;
+    --foreground: 38 30% 95%;
+
+    --card: 234 35% 16%;
+    --card-foreground: 38 30% 95%;
+
+    --popover: 234 35% 16%;
+    --popover-foreground: 38 30% 95%;
+
+    --primary: 15 90% 65%;
+    --primary-foreground: 234 40% 12%;
+
+    --secondary: 270 30% 25%;
+    --secondary-foreground: 270 50% 90%;
+
+    --muted: 234 30% 20%;
+    --muted-foreground: 38 20% 65%;
+
+    --accent: 45 80% 55%;
+    --accent-foreground: 45 80% 10%;
+
+    --destructive: 0 70% 50%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 234 30% 22%;
+    --input: 234 30% 22%;
+    --ring: 15 90% 65%;
+
+    --sidebar-background: 234 35% 14%;
+    --sidebar-foreground: 38 30% 95%;
+    --sidebar-primary: 15 90% 65%;
+    --sidebar-primary-foreground: 234 40% 12%;
+    --sidebar-accent: 270 30% 25%;
+    --sidebar-accent-foreground: 270 50% 90%;
+    --sidebar-border: 234 30% 22%;
+    --sidebar-ring: 15 90% 65%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-body antialiased;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-display;
+  }
+}
+
+@layer components {
+  .gradient-hero {
+    background: var(--gradient-hero);
+  }
+
+  .gradient-magic {
+    background: var(--gradient-magic);
+  }
+
+  .gradient-sunset {
+    background: var(--gradient-sunset);
+  }
+
+  .gradient-dream {
+    background: var(--gradient-dream);
+  }
+
+  .shadow-soft {
+    box-shadow: var(--shadow-soft);
+  }
+
+  .shadow-card {
+    box-shadow: var(--shadow-card);
+  }
+
+  .shadow-glow {
+    box-shadow: var(--shadow-glow);
+  }
+
+  .shadow-magic {
+    box-shadow: var(--shadow-magic);
+  }
+}
+
+@layer utilities {
+  /* Floating animation for magical elements */
+  @keyframes float {
+    0%, 100% {
+      transform: translateY(0px);
+    }
+    50% {
+      transform: translateY(-20px);
+    }
+  }
+
+  @keyframes float-slow {
+    0%, 100% {
+      transform: translateY(0px) rotate(0deg);
+    }
+    50% {
+      transform: translateY(-15px) rotate(5deg);
+    }
+  }
+
+  @keyframes sparkle {
+    0%, 100% {
+      opacity: 0.4;
+      transform: scale(1);
+    }
+    50% {
+      opacity: 1;
+      transform: scale(1.2);
+    }
+  }
+
+  @keyframes wiggle {
+    0%, 100% {
+      transform: rotate(-3deg);
+    }
+    50% {
+      transform: rotate(3deg);
+    }
+  }
+
+  @keyframes pulse-soft {
+    0%, 100% {
+      opacity: 1;
+    }
+    50% {
+      opacity: 0.7;
+    }
+  }
+
+  @keyframes slide-up {
+    from {
+      opacity: 0;
+      transform: translateY(30px);
+    }
+    to {
+      opacity: 1;
+      transform: translateY(0);
+    }
+  }
+
+  @keyframes scale-in {
+    from {
+      opacity: 0;
+      transform: scale(0.9);
+    }
+    to {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  @keyframes bounce-in {
+    0% {
+      opacity: 0;
+      transform: scale(0.3);
+    }
+    50% {
+      transform: scale(1.05);
+    }
+    70% {
+      transform: scale(0.9);
+    }
+    100% {
+      opacity: 1;
+      transform: scale(1);
+    }
+  }
+
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  .animate-float-slow {
+    animation: float-slow 8s ease-in-out infinite;
+  }
+
+  .animate-sparkle {
+    animation: sparkle 2s ease-in-out infinite;
+  }
+
+  .animate-wiggle {
+    animation: wiggle 1s ease-in-out infinite;
+  }
+
+  .animate-pulse-soft {
+    animation: pulse-soft 3s ease-in-out infinite;
+  }
+
+  .animate-slide-up {
+    animation: slide-up 0.6s ease-out forwards;
+  }
+
+  .animate-scale-in {
+    animation: scale-in 0.4s ease-out forwards;
+  }
+
+  .animate-bounce-in {
+    animation: bounce-in 0.6s ease-out forwards;
+  }
+
+  .animation-delay-100 {
+    animation-delay: 100ms;
+  }
+
+  .animation-delay-200 {
+    animation-delay: 200ms;
+  }
+
+  .animation-delay-300 {
+    animation-delay: 300ms;
+  }
+
+  .animation-delay-500 {
+    animation-delay: 500ms;
+  }
+
+  .animation-delay-700 {
+    animation-delay: 700ms;
+  }
+
+  .animation-delay-1000 {
+    animation-delay: 1000ms;
+  }
+}
