@@ -33,6 +33,7 @@ class StoryState(TypedDict):
 
     # Generated content
     story_text: str | None
+    story_text_html: str | None
     story_title: str | None
     word_count: int | None
 
@@ -313,6 +314,7 @@ class StoryOrchestrator:
                 "character_name": character_name,
                 "age_group": age_group,
                 "story_text": None,
+                "story_text_html": None,
                 "story_title": None,
                 "word_count": None,
                 "narration_path": None,

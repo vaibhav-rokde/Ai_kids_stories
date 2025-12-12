@@ -4,12 +4,14 @@ from typing import Optional
 from app.core.database import get_db
 from app.core.dependencies import get_optional_user, get_current_user
 from app.models.user import User
-from app.models.story import Story, StoryStatus
+from app.models.story import Story, StoryStatus, StoryVersion
 from app.models.schemas import (
     StoryCreateRequest,
     StoryResponse,
     StoryStatusResponse,
-    StoryListResponse
+    StoryListResponse,
+    StoryVersionResponse,
+    StoryVersionListResponse
 )
 from app.services.story_orchestrator import StoryOrchestrator
 from app.core.config import settings
@@ -225,3 +227,126 @@ def delete_story(story_id: int, db: Session = Depends(get_db)):
     db.commit()
 
     return {"message": "Story deleted successfully"}
+
+
+def save_story_version(story: Story, db: Session):
+    """Helper function to save current story as a version before regenerating"""
+    if not story.story_text:
+        # Don't save version if story generation never completed
+        return
+
+    version = StoryVersion(
+        story_id=story.id,
+        version_number=story.current_version,
+        theme=story.theme,
+        character_name=story.character_name,
+        age_group=story.age_group,
+        story_text=story.story_text,
+        story_text_html=story.story_text_html,
+        story_title=story.story_title,
+        audio_file_path=story.audio_file_path,
+        music_file_path=story.music_file_path,
+        final_audio_path=story.final_audio_path,
+        audio_url=story.audio_url,
+        word_count=story.word_count,
+        duration_seconds=story.duration_seconds
+    )
+    db.add(version)
+    db.commit()
+    logger.info(f"Saved version {version.version_number} for story {story.id}")
+
+
+@router.post("/{story_id}/regenerate", response_model=StoryResponse, status_code=202)
+async def regenerate_story(
+    story_id: int,
+    background_tasks: BackgroundTasks,
+    db: Session = Depends(get_db)
+):
+    """
+    Regenerate an existing story
+
+    This will:
+    1. Save the current version to history
+    2. Increment version number
+    3. Generate a new story with same parameters
+    """
+    story = db.query(Story).filter(Story.id == story_id).first()
+    if not story:
+        raise HTTPException(status_code=404, detail="Story not found")
+
+    try:
+        # Save current version before regenerating
+        save_story_version(story, db)
+
+        # Increment version number
+        story.current_version += 1
+        story.status = StoryStatus.PENDING
+        story.error_message = None
+        db.commit()
+
+        logger.info(f"Regenerating story {story_id}, new version: {story.current_version}")
+
+        # Start background generation with same parameters
+        from app.core.database import SessionLocal
+        bg_db = SessionLocal()
+
+        background_tasks.add_task(
+            generate_story_background,
+            story_id=story.id,
+            theme=story.theme,
+            character_name=story.character_name,
+            age_group=story.age_group,
+            db=bg_db
+        )
+
+        db.refresh(story)
+        return story
+
+    except Exception as e:
+        logger.error(f"Error regenerating story: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Failed to regenerate story: {str(e)}")
+
+
+@router.get("/{story_id}/versions", response_model=StoryVersionListResponse)
+def get_story_versions(story_id: int, db: Session = Depends(get_db)):
+    """Get all versions of a story"""
+    story = db.query(Story).filter(Story.id == story_id).first()
+    if not story:
+        raise HTTPException(status_code=404, detail="Story not found")
+
+    versions = (
+        db.query(StoryVersion)
+        .filter(StoryVersion.story_id == story_id)
+        .order_by(StoryVersion.version_number.desc())
+        .all()
+    )
+
+    return StoryVersionListResponse(
+        versions=versions,
+        total=len(versions)
+    )
+
+
+@router.get("/{story_id}/versions/{version_number}", response_model=StoryVersionResponse)
+def get_story_version(
+    story_id: int,
+    version_number: int,
+    db: Session = Depends(get_db)
+):
+    """Get a specific version of a story"""
+    version = (
+        db.query(StoryVersion)
+        .filter(
+            StoryVersion.story_id == story_id,
+            StoryVersion.version_number == version_number
+        )
+        .first()
+    )
+
+    if not version:
+        raise HTTPException(
+            status_code=404,
+            detail=f"Version {version_number} not found for story {story_id}"
+        )
+
+    return version

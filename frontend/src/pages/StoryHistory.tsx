@@ -5,8 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { AudioPlayer } from '@/components/AudioPlayer';
-import { Loader2, BookOpen, Calendar, Clock, ArrowLeft, ChevronDown, ChevronUp } from 'lucide-react';
+import { Loader2, BookOpen, Calendar, Clock, ArrowLeft, ChevronDown, ChevronUp, RefreshCw, History } from 'lucide-react';
 import { toast } from 'sonner';
+import { VersionHistoryDialog } from '@/components/VersionHistoryDialog';
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
 
@@ -23,6 +24,7 @@ interface Story {
   duration_seconds: number | null;
   created_at: string;
   completed_at: string | null;
+  current_version: number;
 }
 
 interface StoriesResponse {
@@ -39,6 +41,8 @@ export default function StoryHistory() {
   const [isLoading, setIsLoading] = useState(true);
   const [total, setTotal] = useState(0);
   const [expandedStories, setExpandedStories] = useState<Set<number>>(new Set());
+  const [regeneratingIds, setRegeneratingIds] = useState<Set<number>>(new Set());
+  const [versionDialogStoryId, setVersionDialogStoryId] = useState<number | null>(null);
 
   useEffect(() => {
     if (!isAuthenticated) {
@@ -108,6 +112,46 @@ export default function StoryHistory() {
       }
       return newSet;
     });
+  };
+
+  const handleRegenerate = async (storyId: number) => {
+    try {
+      setRegeneratingIds((prev) => new Set(prev).add(storyId));
+      const token = localStorage.getItem('auth_token');
+      const response = await fetch(`${API_BASE_URL}/api/v1/stories/${storyId}/regenerate`, {
+        method: 'POST',
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      });
+
+      if (!response.ok) {
+        throw new Error('Failed to regenerate story');
+      }
+
+      toast.success('Story regeneration started! It will be ready soon.');
+
+      // Reload stories to show updated status
+      setTimeout(() => {
+        loadStories();
+        setRegeneratingIds((prev) => {
+          const newSet = new Set(prev);
+          newSet.delete(storyId);
+          return newSet;
+        });
+      }, 1000);
+    } catch (error) {
+      toast.error(error instanceof Error ? error.message : 'Failed to regenerate story');
+      setRegeneratingIds((prev) => {
+        const newSet = new Set(prev);
+        newSet.delete(storyId);
+        return newSet;
+      });
+    }
+  };
+
+  const handleViewVersions = (storyId: number) => {
+    setVersionDialogStoryId(storyId);
   };
 
   if (isLoading) {
@@ -183,7 +227,41 @@ export default function StoryHistory() {
                         <Badge className={`${getStatusColor(story.status)} font-body border`}>
                           {story.status}
                         </Badge>
+                        <Badge variant="outline" className="font-body">
+                          Version: {story.current_version}
+                        </Badge>
                       </div>
+                    </div>
+                    <div className="flex gap-2 ml-4">
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleRegenerate(story.id)}
+                        disabled={regeneratingIds.has(story.id) || story.status !== 'completed'}
+                        className="font-body"
+                      >
+                        {regeneratingIds.has(story.id) ? (
+                          <>
+                            <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                            Regenerating...
+                          </>
+                        ) : (
+                          <>
+                            <RefreshCw className="w-4 h-4 mr-2" />
+                            Regenerate
+                          </>
+                        )}
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="outline"
+                        onClick={() => handleViewVersions(story.id)}
+                        disabled={story.current_version === 1}
+                        className="font-body"
+                      >
+                        <History className="w-4 h-4 mr-2" />
+                        Versions
+                      </Button>
                     </div>
                   </div>
                 </CardHeader>
@@ -242,12 +320,19 @@ export default function StoryHistory() {
                   </div>
 
                   {/* Audio Player */}
-                  {story.status === 'completed' && story.audio_url && (
-                    <AudioPlayer
-                      title={story.story_title || 'Your Story'}
-                      audioUrl={story.audio_url}
-                      duration={story.duration_seconds ? formatDuration(story.duration_seconds) : undefined}
-                    />
+                  {story.audio_url && (
+                    <div className="space-y-2">
+                      {story.status !== 'completed' && (
+                        <p className="text-xs text-muted-foreground font-body">
+                          Playing previous version while new one is being generated...
+                        </p>
+                      )}
+                      <AudioPlayer
+                        title={story.story_title || 'Your Story'}
+                        audioUrl={story.audio_url}
+                        duration={story.duration_seconds ? formatDuration(story.duration_seconds) : undefined}
+                      />
+                    </div>
                   )}
                 </CardContent>
               </Card>
@@ -255,6 +340,15 @@ export default function StoryHistory() {
           </div>
         )}
       </div>
+
+      {/* Version History Dialog */}
+      {versionDialogStoryId && (
+        <VersionHistoryDialog
+          storyId={versionDialogStoryId}
+          open={versionDialogStoryId !== null}
+          onOpenChange={(open) => !open && setVersionDialogStoryId(null)}
+        />
+      )}
     </div>
   );
 }

@@ -38,6 +38,7 @@ class StoryResponse(BaseModel):
     error_message: Optional[str]
     created_at: datetime
     completed_at: Optional[datetime]
+    current_version: int
 
     class Config:
         from_attributes = True
@@ -61,6 +62,33 @@ class StoryStatusResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+# Version Schemas
+class StoryVersionResponse(BaseModel):
+    """Response schema for story version"""
+    id: int
+    story_id: int
+    version_number: int
+    theme: str
+    character_name: Optional[str]
+    age_group: str
+    story_text: Optional[str]
+    story_text_html: Optional[str]
+    story_title: Optional[str]
+    audio_url: Optional[str]
+    word_count: Optional[int]
+    duration_seconds: Optional[float]
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class StoryVersionListResponse(BaseModel):
+    """Response schema for list of story versions"""
+    versions: list[StoryVersionResponse]
+    total: int
 
 
 # Health Check Schema
